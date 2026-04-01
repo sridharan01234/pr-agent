@@ -150,11 +150,10 @@ export async function publishReview(
     ? `${review.summary}\n\n${detailedSection}`
     : review.summary;
 
-  const reviewEvent = review.criticalCount > 0 || review.highCount > 0
-    ? 'REQUEST_CHANGES'
-    : review.mediumCount > 0
-    ? 'COMMENT'
-    : 'APPROVE';
+  // Always use COMMENT — REQUEST_CHANGES is blocked on self-authored PRs and
+  // on GitHub Actions GITHUB_TOKEN which has limited reviewer permissions.
+  // The severity verdict is clearly communicated in the review body text.
+  const reviewEvent = 'COMMENT';
 
   try {
     await octokit.request('POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews', {

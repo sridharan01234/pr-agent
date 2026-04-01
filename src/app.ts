@@ -8,7 +8,19 @@ import { registerWebhookHandlers } from './github/webhook-handler.js';
 const WEBHOOK_PATH = '/webhook';
 const HEALTH_PATH = '/health';
 
+function validateWebhookConfig(): void {
+  const { appId, privateKey, webhookSecret } = config.github;
+  if (!appId || !privateKey || !webhookSecret) {
+    throw new Error(
+      'Webhook server requires GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY, and GITHUB_WEBHOOK_SECRET. ' +
+      'For GitHub Actions mode, run src/scripts/review-pr-action.ts instead.',
+    );
+  }
+}
+
 async function main(): Promise<void> {
+  validateWebhookConfig();
+
   const app = express();
   const webhooks = getWebhooks();
 

@@ -1,0 +1,74 @@
+name: Validate Repository Configuration
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate-structure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Python dependencies
+        run: pip install pyyaml
+
+      - name: Validate JSON files
+        run: |
+          echo "Validating JSON files..."
+          find .github/hooks -name "*.json" -print0 | xargs -0 -I{} sh -c 'echo "Checking {}..." && python3 -c "import json; json.load(open(\"{}\"))"'
+          echo "All JSON files are valid."
+
+      - name: Validate YAML frontmatter
+        run: |
+          echo "Validating YAML frontmatter..."
+          files=$(find .github/instructions -name "*.instructions.md" 2>/dev/null; find .github/agents -name "*.agent.md" 2>/dev/null; find .github/prompts -name "*.prompt.md" 2>/dev/null; find .github/skills -name "SKILL.md" 2>/dev/null)
+          for file in $files; do
+            echo "Checking $file..."
+            sed -n '/^---$/,/^---$/p' "$file" | head -n -1 | tail -n +2 | python3 -c "import sys, yaml; yaml.safe_load(sys.stdin)" || { echo "FAILED: $file"; exit 1; }
+          done
+          echo "All frontmatter is valid YAML."
+
+      - name: Check for banned terms
+        run: |
+          echo "Checking for banned Claude Code-specific terms in config files..."
+          FAILED=0
+          for file in $(find .github/instructions .github/agents .github/prompts .github/skills .github/hooks -type f 2>/dev/null); do
+            if grep -liE "CLAUDE\.md" "$file" 2>/dev/null; then
+              echo "FAILED: $file contains banned term 'CLAUDE.md'"
+              FAILED=1
+            fi
+          done
+          [ "$FAILED" -eq 0 ] || exit 1
+          echo "No banned terms found in configuration files."
+
+      - name: Validate files end with newline
+        run: |
+          echo "Checking files end with newline..."
+          FAILED=0
+          for file in $(find . -type f \( -name "*.md" -o -name "*.json" -o -name "*.yml" -o -name "*.yaml" \) -not -path "./.git/*" -not -path "./node_modules/*"); do
+            if [ -s "$file" ] && [ "$(tail -c1 "$file" | xxd -p)" != "0a" ]; then
+              echo "FAILED: $file does not end with newline"
+              FAILED=1
+            fi
+          done
+          [ "$FAILED" -eq 0 ] || exit 1
+          echo "All files end with newline."
+
+      - name: Validate skill directory names match SKILL.md name field
+        run: |
+          echo "Validating skill name consistency..."
+          for skill_dir in .github/skills/*/; do
+            dir_name=$(basename "$skill_dir")
+            skill_file="$skill_dir/SKILL.md"
+            if [ -f "$skill_file" ]; then
+              skill_name=$(sed -n '/^---$/,/^---$/p' "$skill_file" | grep "^name:" | sed 's/name: *//;s/"//g;s/'\''//g' | tr -d '[:space:]')
+              if [ "$dir_name" != "$skill_name" ]; then
+                echo "FAILED: Skill directory '$dir_name' does not match SKILL.md name '$skill_name'"
+                exit 1
+              fi
+            fi
+          done
+          echo "All skill names are consistent."
