@@ -1,6 +1,6 @@
 import type { Octokit } from '@octokit/rest';
 import { logger } from '../logger.js';
-import type { AggregatedReview, ReviewFinding } from '../agents/types.js';
+import type { AggregatedReview, ChangedFile, ReviewFinding } from '../agents/types.js';
 
 const SEVERITY_EMOJI: Record<string, string> = {
   CRITICAL: '🔴',
@@ -63,26 +63,6 @@ function buildDetailedFindingsSection(findings: ReviewFinding[]): string {
   return sections.join('\n');
 }
 
-interface PullRequestFile {
-  filename: string;
-  patch?: string;
-}
-
-async function fetchPRFiles(
-  octokit: Octokit,
-  owner: string,
-  repo: string,
-  pullNumber: number,
-): Promise<PullRequestFile[]> {
-  const { data } = await octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}/files', {
-    owner,
-    repo,
-    pull_number: pullNumber,
-    per_page: 100,
-  });
-  return data as PullRequestFile[];
-}
-
 function buildDiffPositionMap(patch: string): Map<number, number> {
   const lineToPosition = new Map<number, number>();
   let fileLineNumber = 0;
@@ -113,13 +93,12 @@ export async function publishReview(
   pullNumber: number,
   commitSha: string,
   review: AggregatedReview,
+  changedFiles: ChangedFile[],
 ): Promise<void> {
-  const prFiles = await fetchPRFiles(octokit, owner, repo, pullNumber);
-
   const patchMap = new Map<string, Map<number, number>>();
-  for (const file of prFiles) {
+  for (const file of changedFiles) {
     if (file.patch) {
-      patchMap.set(file.filename, buildDiffPositionMap(file.patch));
+      patchMap.set(file.path, buildDiffPositionMap(file.patch));
     }
   }
 

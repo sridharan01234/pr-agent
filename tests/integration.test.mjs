@@ -8,8 +8,8 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 if (!process.env.OPENAI_API_KEY) {
-  console.error('OPENAI_API_KEY env var is required to run integration tests');
-  process.exit(1);
+  console.warn('OPENAI_API_KEY env var is not set — skipping integration tests');
+  process.exit(0);
 }
 process.env.OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-mini';
 process.env.GITHUB_APP_ID = '1';

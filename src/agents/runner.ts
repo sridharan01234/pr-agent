@@ -96,6 +96,13 @@ export async function runReviewAgent(
   const userPrompt = buildUserPrompt(files);
 
   if (!userPrompt.trim()) {
+    const patchlessFiles = files.filter((f) => f.patch.length === 0).length;
+    logger.warn('Agent skipping: no diff content available after filtering empty patches', {
+      agentId: agent.id,
+      agentName: agent.name,
+      patchlessFiles,
+      totalFiles: files.length,
+    });
     return {
       agentId: agent.id,
       agentName: agent.name,

@@ -1,11 +1,10 @@
 import type { ChangedFile, ReviewAgentConfig } from '../agents/types';
 
-jest.mock('openai');
-
 const mockCreate = jest.fn();
 
 jest.mock('openai', () => {
   return {
+    __esModule: true,
     default: jest.fn().mockImplementation(() => ({
       chat: {
         completions: {
@@ -102,7 +101,7 @@ describe('runReviewAgent', () => {
     expect(result.findings[0].rule).toBe('SEC-1');
     expect(result.findings[0].severity).toBe('HIGH');
     expect(result.findings[0].agentId).toBe('test-agent');
-    expect(mockCreate).toHaveBeenCalledOnce();
+    expect(mockCreate).toHaveBeenCalledTimes(1);
   });
 
   it('returns empty findings when OpenAI returns empty array', async () => {
