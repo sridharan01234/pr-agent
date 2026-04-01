@@ -54,8 +54,8 @@ async function fetchPRContext(
   pr: PullRequestPayload['pull_request'],
   installationId: number,
 ): Promise<PRContext> {
-  const [filesResponse, commitsResponse] = await Promise.all([
-    octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}/files', {
+  const [pagedFiles, commitsResponse] = await Promise.all([
+    octokit.paginate('GET /repos/{owner}/{repo}/pulls/{pull_number}/files', {
       owner,
       repo,
       pull_number: pullNumber,
@@ -69,7 +69,7 @@ async function fetchPRContext(
     }),
   ]);
 
-  const rawFiles = filesResponse.data as RawFile[];
+  const rawFiles = pagedFiles as RawFile[];
   const rawCommits = commitsResponse.data as RawCommit[];
 
   const changedFiles = classifyFiles(rawFiles);
@@ -147,6 +147,7 @@ export function registerWebhookHandlers(webhooks: Webhooks): void {
         pullNumber,
         pr.head.sha,
         review,
+        prContext.changedFiles,
       );
 
       logger.info('PR review completed and published', {
