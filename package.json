@@ -1,0 +1,37 @@
+{
+  "name": "pr-review-agent",
+  "version": "1.0.0",
+  "description": "GitHub App-based PR review agent — orchestrates 11 parallel OpenAI review agents and posts actionable GitHub PR comments",
+  "main": "dist/app.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/app.js",
+    "dev": "ts-node --project tsconfig.json src/app.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && node tests/run-all.mjs",
+    "test:unit": "npm run build && node tests/classifier.test.mjs && node tests/aggregator.test.mjs && node tests/prompts.test.mjs",
+    "test:integration": "npm run build && node tests/integration.test.mjs"
+  },
+  "keywords": [
+    "github-app",
+    "pr-review",
+    "openai",
+    "code-review"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@octokit/rest": "^21.1.1",
+    "@octokit/webhooks": "^9.26.3",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.3",
+    "openai": "^4.104.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20.14.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}
