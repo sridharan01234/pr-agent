@@ -27,7 +27,7 @@ export async function orchestrateReview(prContext: PRContext): Promise<Aggregate
     skipped: skippedAgents.map((a) => a.id),
   });
 
-  const agentPromises = REVIEW_AGENTS.map((agent) =>
+  const agentPromises = applicableAgents.map((agent) =>
     runReviewAgent(agent, changedFiles),
   );
 
