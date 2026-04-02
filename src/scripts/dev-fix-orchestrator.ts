@@ -100,13 +100,23 @@ async function getDefaultBranchSha(octokit: Octokit, owner: string, repo: string
 }
 
 async function createBranch(octokit: Octokit, owner: string, repo: string, branchName: string, sha: string): Promise<void> {
-  await octokit.request('POST /repos/{owner}/{repo}/git/refs', {
-    owner,
-    repo,
-    ref: `refs/heads/${branchName}`,
-    sha,
-  });
-  logger.info('Branch created', { branchName });
+  try {
+    await octokit.request('POST /repos/{owner}/{repo}/git/refs', {
+      owner,
+      repo,
+      ref: `refs/heads/${branchName}`,
+      sha,
+    });
+    logger.info('Branch created', { branchName });
+  } catch (err: unknown) {
+    // 422 = branch already exists (e.g. duplicate event trigger) — reuse it
+    const status = (err as { status?: number }).status;
+    if (status === 422) {
+      logger.info('Branch already exists — reusing', { branchName });
+      return;
+    }
+    throw err;
+  }
 }
 
 async function openPullRequest(
@@ -118,17 +128,35 @@ async function openPullRequest(
   head: string,
   base: string,
 ): Promise<number> {
-  const { data } = await octokit.request('POST /repos/{owner}/{repo}/pulls', {
-    owner,
-    repo,
-    title,
-    body,
-    head,
-    base,
-    draft: false,
-  });
-  logger.info('PR opened', { prNumber: data.number, url: data.html_url });
-  return data.number;
+  try {
+    const { data } = await octokit.request('POST /repos/{owner}/{repo}/pulls', {
+      owner,
+      repo,
+      title,
+      body,
+      head,
+      base,
+      draft: false,
+    });
+    logger.info('PR opened', { prNumber: data.number, url: data.html_url });
+    return data.number;
+  } catch (err: unknown) {
+    // 422 = PR already exists for this branch — find and return it
+    const status = (err as { status?: number }).status;
+    if (status === 422) {
+      const { data: pulls } = await octokit.request('GET /repos/{owner}/{repo}/pulls', {
+        owner,
+        repo,
+        head: `${owner}:${head}`,
+        state: 'open',
+      });
+      if (pulls.length > 0) {
+        logger.info('PR already exists — reusing', { prNumber: pulls[0].number });
+        return pulls[0].number;
+      }
+    }
+    throw err;
+  }
 }
 
 async function pollWorkflowCompletion(
