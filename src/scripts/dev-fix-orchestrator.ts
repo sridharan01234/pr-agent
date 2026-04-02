@@ -209,8 +209,9 @@ async function fetchReviewSummary(
     pull_number: prNumber,
   });
 
+  // Match by body marker — works whether review posted by github-actions[bot] or PAT user
   const botReview = reviews
-    .filter((r) => r.user?.login === 'github-actions[bot]')
+    .filter((r) => r.user?.login === 'github-actions[bot]' || r.body?.includes('🤖 Automated PR Review'))
     .sort((a, b) => new Date(b.submitted_at ?? 0).getTime() - new Date(a.submitted_at ?? 0).getTime())[0];
 
   if (!botReview?.body) return null;
