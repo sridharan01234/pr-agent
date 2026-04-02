@@ -307,7 +307,10 @@ Rules:
 - Use strict TypeScript — no 'any' types
 - Follow existing code patterns
 - Each commit message must follow Conventional Commits format
-- Only fix the specific issues — do not refactor unrelated code`,
+- Only fix the specific issues — do not refactor unrelated code
+- Add JSDoc comments (@param, @returns, @throws) to every exported function that is missing them
+- Remove any inline comments that describe WHAT the code does (e.g. '// BUG:', '// magic number') 
+- Extract all magic number literals to named UPPER_SNAKE_CASE constants`,
       },
       { role: 'user', content: prompt },
     ],
