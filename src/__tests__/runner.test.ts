@@ -1,10 +1,10 @@
-import type { ChangedFile, ReviewAgentConfig } from '../agents/types';
+import type { ChangedFile, ReviewAgentConfig } from "../agents/types";
 
-jest.mock('openai');
+jest.mock("openai");
 
 const mockCreate = jest.fn();
 
-jest.mock('openai', () => {
+jest.mock("openai", () => {
   return {
     default: jest.fn().mockImplementation(() => ({
       chat: {
@@ -16,24 +16,25 @@ jest.mock('openai', () => {
   };
 });
 
-jest.mock('../config', () => ({
+jest.mock("../config", () => ({
   config: {
-    openai: { apiKey: 'test-key', model: 'gpt-4.1-mini' },
-    github: { appId: 1, privateKey: 'pk', webhookSecret: 'secret' },
+    openai: { apiKey: "test-key", model: "gpt-4.1-mini" },
+    github: { appId: 1, privateKey: "pk", webhookSecret: "secret" },
     review: { maxParallelAgents: 11, timeoutMs: 120000 },
     port: 3000,
     isDevelopment: false,
   },
 }));
 
-import { runReviewAgent } from '../agents/runner';
+import { runReviewAgent } from "../agents/runner";
 
 const mockTsFile: ChangedFile = {
-  path: 'src/user.service.ts',
-  status: 'modified',
+  path: "src/user.service.ts",
+  status: "modified",
   linesAdded: 10,
   linesRemoved: 2,
-  patch: '@@ -1,5 +1,10 @@\n+const secret = "hardcoded";\n+console.log("test");',
+  patch:
+    '@@ -1,5 +1,10 @@\n+const secret = "hardcoded";\n+console.log("test");',
   isTypeScript: true,
   isReact: false,
   isTest: false,
@@ -44,20 +45,20 @@ const mockTsFile: ChangedFile = {
 };
 
 const mockAgent: ReviewAgentConfig = {
-  id: 'test-agent',
-  name: 'Test Agent',
-  systemPrompt: 'You are a test reviewer. Output JSON.',
+  id: "test-agent",
+  name: "Test Agent",
+  systemPrompt: "You are a test reviewer. Output JSON.",
   shouldRun: (files) => files.some((f) => f.isTypeScript),
 };
 
-describe('runReviewAgent', () => {
+describe("runReviewAgent", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('returns skipped when no applicable files', async () => {
+  it("returns skipped when no applicable files", async () => {
     const noTsFiles: ChangedFile[] = [
-      { ...mockTsFile, isTypeScript: false, path: 'README.md' },
+      { ...mockTsFile, isTypeScript: false, path: "README.md" },
     ];
 
     const agentThatNeedsTs: ReviewAgentConfig = {
@@ -72,7 +73,7 @@ describe('runReviewAgent', () => {
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
-  it('calls OpenAI and parses valid findings', async () => {
+  it("calls OpenAI and parses valid findings", async () => {
     mockCreate.mockResolvedValueOnce({
       choices: [
         {
@@ -80,13 +81,13 @@ describe('runReviewAgent', () => {
             content: JSON.stringify({
               findings: [
                 {
-                  rule: 'SEC-1',
-                  severity: 'HIGH',
-                  filePath: 'src/user.service.ts',
+                  rule: "SEC-1",
+                  severity: "HIGH",
+                  filePath: "src/user.service.ts",
                   line: 1,
-                  title: 'Hardcoded secret',
-                  body: 'API key hardcoded in source',
-                  suggestion: 'Use environment variables instead',
+                  title: "Hardcoded secret",
+                  body: "API key hardcoded in source",
+                  suggestion: "Use environment variables instead",
                 },
               ],
             }),
@@ -99,13 +100,13 @@ describe('runReviewAgent', () => {
 
     expect(result.skipped).toBe(false);
     expect(result.findings).toHaveLength(1);
-    expect(result.findings[0].rule).toBe('SEC-1');
-    expect(result.findings[0].severity).toBe('HIGH');
-    expect(result.findings[0].agentId).toBe('test-agent');
+    expect(result.findings[0].rule).toBe("SEC-1");
+    expect(result.findings[0].severity).toBe("HIGH");
+    expect(result.findings[0].agentId).toBe("test-agent");
     expect(mockCreate).toHaveBeenCalledOnce();
   });
 
-  it('returns empty findings when OpenAI returns empty array', async () => {
+  it("returns empty findings when OpenAI returns empty array", async () => {
     mockCreate.mockResolvedValueOnce({
       choices: [{ message: { content: '{"findings":[]}' } }],
     });
@@ -117,19 +118,19 @@ describe('runReviewAgent', () => {
     expect(result.error).toBeUndefined();
   });
 
-  it('returns error report when OpenAI throws', async () => {
-    mockCreate.mockRejectedValueOnce(new Error('Rate limit exceeded'));
+  it("returns error report when OpenAI throws", async () => {
+    mockCreate.mockRejectedValueOnce(new Error("Rate limit exceeded"));
 
     const result = await runReviewAgent(mockAgent, [mockTsFile]);
 
     expect(result.skipped).toBe(false);
-    expect(result.error).toContain('Rate limit exceeded');
+    expect(result.error).toContain("Rate limit exceeded");
     expect(result.findings).toHaveLength(0);
   });
 
-  it('handles malformed JSON gracefully', async () => {
+  it("handles malformed JSON gracefully", async () => {
     mockCreate.mockResolvedValueOnce({
-      choices: [{ message: { content: 'This is not JSON' } }],
+      choices: [{ message: { content: "This is not JSON" } }],
     });
 
     const result = await runReviewAgent(mockAgent, [mockTsFile]);
@@ -138,7 +139,7 @@ describe('runReviewAgent', () => {
     expect(result.error).toBeUndefined();
   });
 
-  it('normalizes unknown severity to MEDIUM', async () => {
+  it("normalizes unknown severity to MEDIUM", async () => {
     mockCreate.mockResolvedValueOnce({
       choices: [
         {
@@ -146,11 +147,11 @@ describe('runReviewAgent', () => {
             content: JSON.stringify({
               findings: [
                 {
-                  rule: 'X-1',
-                  severity: 'UNKNOWN_LEVEL',
-                  filePath: 'src/file.ts',
-                  title: 'Some issue',
-                  body: 'Description',
+                  rule: "X-1",
+                  severity: "UNKNOWN_LEVEL",
+                  filePath: "src/file.ts",
+                  title: "Some issue",
+                  body: "Description",
                 },
               ],
             }),
@@ -161,6 +162,6 @@ describe('runReviewAgent', () => {
 
     const result = await runReviewAgent(mockAgent, [mockTsFile]);
 
-    expect(result.findings[0].severity).toBe('MEDIUM');
+    expect(result.findings[0].severity).toBe("MEDIUM");
   });
 });

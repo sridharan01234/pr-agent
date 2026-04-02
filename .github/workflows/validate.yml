@@ -10,7 +10,7 @@ jobs:
   validate-structure:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Python dependencies
         run: pip install pyyaml
@@ -37,7 +37,7 @@ jobs:
           else
             for file in $files; do
               echo "Checking $file..."
-              sed -n '/^---$/,/^---$/p' "$file" | head -n -1 | tail -n +2 | python3 -c "import sys, yaml; yaml.safe_load(sys.stdin)" || { echo "FAILED: $file"; exit 1; }
+              awk 'NR>1 && /^---$/{exit} NR>1' "$file" | python3 -c "import sys, yaml; yaml.safe_load(sys.stdin)" || { echo "FAILED: $file"; exit 1; }
             done
             echo "All frontmatter is valid YAML."
           fi
@@ -83,7 +83,7 @@ jobs:
             dir_name=$(basename "$skill_dir")
             skill_file="$skill_dir/SKILL.md"
             if [ -f "$skill_file" ]; then
-              skill_name=$(sed -n '/^---$/,/^---$/p' "$skill_file" | grep "^name:" | sed 's/name: *//;s/"//g;s/'\''//g' | tr -d '[:space:]')
+              skill_name=$(awk 'NR>1 && /^---$/{exit} NR>1' "$skill_file" | grep "^name:" | sed 's/name: *//;s/"//g;s/'\''//g' | tr -d '[:space:]')
               if [ "$dir_name" != "$skill_name" ]; then
                 echo "FAILED: Skill directory '$dir_name' does not match SKILL.md name '$skill_name'"
                 exit 1
