@@ -28,7 +28,7 @@ export async function orchestrateReview(prContext: PRContext): Promise<Aggregate
   });
 
   const agentPromises = applicableAgents.map((agent) =>
-    runReviewAgent(agent, changedFiles),
+    runReviewAgent(agent, changedFiles.filter((f) => agent.shouldRun([f]))),
   );
 
   const reports = await Promise.all(agentPromises);

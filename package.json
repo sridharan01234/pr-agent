@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "npm run build && node tests/run-all.mjs",
     "test:unit": "npm run build && node tests/classifier.test.mjs && node tests/aggregator.test.mjs && node tests/prompts.test.mjs",
-    "test:integration": "npm run build && node tests/integration.test.mjs"
+    "test:integration": "npm run build && node tests/integration.test.mjs",
+    "test:jest": "jest"
   },
   "keywords": [
     "github-app",
@@ -31,6 +32,9 @@
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.14.0",
+    "@types/jest": "^29.5.14",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   }
