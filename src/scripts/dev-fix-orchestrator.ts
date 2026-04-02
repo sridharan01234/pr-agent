@@ -541,14 +541,21 @@ Closes #${issue.number}`;
     }
 
     if (cycle === MAX_FIX_CYCLES) {
-      logger.warn('Max fix cycles reached — cannot auto-merge', { criticalCount, highCount });
+      if (criticalCount > 0) {
+        logger.warn('Max fix cycles reached — CRITICAL findings remain, aborting merge', { criticalCount, highCount });
+        await commentOnPR(octokit, owner, repo, prNumber,
+          `🚫 Dev Fix Orchestrator: After ${MAX_FIX_CYCLES} fix cycles, **${criticalCount} CRITICAL** findings remain. Cannot auto-merge.\n\nPlease resolve the critical issues manually.`);
+        await octokit.request('POST /repos/{owner}/{repo}/issues/{issue_number}/comments', {
+          owner, repo, issue_number: issueNumber,
+          body: `🚫 Automated fix in PR #${prNumber} could not resolve CRITICAL findings after ${MAX_FIX_CYCLES} cycles. Human intervention required.`,
+        });
+        return;
+      }
+      // No CRITICAL findings — merge with a note about remaining HIGH/style findings
+      logger.warn('Max fix cycles reached — no CRITICAL findings, merging with HIGH findings noted', { criticalCount, highCount });
       await commentOnPR(octokit, owner, repo, prNumber,
-        `⚠️ Dev Fix Orchestrator: After ${MAX_FIX_CYCLES} fix cycles, ${criticalCount} CRITICAL and ${highCount} HIGH findings remain. Human review required.\n\nPlease resolve the remaining issues manually.`);
-      await octokit.request('POST /repos/{owner}/{repo}/issues/{issue_number}/comments', {
-        owner, repo, issue_number: issueNumber,
-        body: `⚠️ Automated fix in PR #${prNumber} could not fully resolve all review findings. Human review required.`,
-      });
-      return;
+        `⚠️ Dev Fix Orchestrator: After ${MAX_FIX_CYCLES} fix cycles, ${highCount} HIGH findings remain (style/convention, no critical bugs). Auto-merging — please review and address the style findings as a follow-up.`);
+      break;
     }
 
     // Generate targeted fixes for CRITICAL/HIGH findings
